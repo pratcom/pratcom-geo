@@ -3,7 +3,7 @@
  * Plugin Name: Pratcom GEO
  * Plugin URI:  https://pratcom.net/
  * Description: Genere automatiquement /llms.txt (et /xx/llms.txt sur les sites multilingues) au format llmstxt.org, a partir du contenu publie. Zero configuration : titre = nom du site, resume = description Yoast ou slogan, sections deduites de la structure (pages, blog, pages legales). Compatible WPML et Yoast SEO. Aucun tiret cadratin dans la sortie.
- * Version:     1.0.3
+ * Version:     1.0.4
  * Author:      Pratcom Media
  * Author URI:  https://pratcom.net/
  * License:     GPL-2.0-or-later
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 if ( ! defined( 'PRATCOM_GEO_VERSION' ) ) {
-	define( 'PRATCOM_GEO_VERSION', '1.0.3' );
+	define( 'PRATCOM_GEO_VERSION', '1.0.4' );
 }
 
 /* =========================================================================
