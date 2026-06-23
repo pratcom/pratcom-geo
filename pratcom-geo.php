@@ -3,7 +3,7 @@
  * Plugin Name: Pratcom GEO
  * Plugin URI:  https://pratcom.net/
  * Description: Genere automatiquement /llms.txt (et /xx/llms.txt sur les sites multilingues) au format llmstxt.org, a partir du contenu publie. Zero configuration : titre = nom du site, resume = description Yoast ou slogan, sections deduites de la structure (pages, blog, pages legales). Compatible WPML et Yoast SEO. Aucun tiret cadratin dans la sortie.
- * Version:     1.0.2
+ * Version:     1.0.3
  * Author:      Pratcom Media
  * Author URI:  https://pratcom.net/
  * License:     GPL-2.0-or-later
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 if ( ! defined( 'PRATCOM_GEO_VERSION' ) ) {
-	define( 'PRATCOM_GEO_VERSION', '1.0.2' );
+	define( 'PRATCOM_GEO_VERSION', '1.0.3' );
 }
 
 /* =========================================================================
@@ -605,3 +605,95 @@ function pratcom_geo_render( $lang ) {
 	}
 	return rtrim( $doc ) . "\n";
 }
+
+/* =========================================================================
+ * 8. Auto-update depuis GitHub (depot public, sans plugin externe)
+ *    Lit le header Version sur la branche, propose la mise a jour dans
+ *    wp-admin, et corrige le nom du dossier extrait du zipball (-main).
+ * ====================================================================== */
+
+if ( ! defined( 'PRATCOM_GEO_REPO' ) ) {
+	define( 'PRATCOM_GEO_REPO', 'pratcom/pratcom-geo' );
+}
+if ( ! defined( 'PRATCOM_GEO_BRANCH' ) ) {
+	define( 'PRATCOM_GEO_BRANCH', 'main' );
+}
+
+function pratcom_geo_basename() {
+	return plugin_basename( __FILE__ );
+}
+
+function pratcom_geo_remote_version() {
+	$cached = get_transient( 'pratcom_geo_remote_version' );
+	if ( false !== $cached ) {
+		return $cached;
+	}
+	$url  = 'https://raw.githubusercontent.com/' . PRATCOM_GEO_REPO . '/' . PRATCOM_GEO_BRANCH . '/pratcom-geo.php';
+	$resp = wp_remote_get( $url, array( 'timeout' => 10 ) );
+	$ver  = '';
+	if ( ! is_wp_error( $resp ) && 200 === (int) wp_remote_retrieve_response_code( $resp ) ) {
+		if ( preg_match( '/^[ \t\/*]*Version:\s*(.+)$/mi', wp_remote_retrieve_body( $resp ), $m ) ) {
+			$ver = trim( $m[1] );
+		}
+	}
+	set_transient( 'pratcom_geo_remote_version', $ver, 6 * HOUR_IN_SECONDS );
+	return $ver;
+}
+
+function pratcom_geo_check_update( $transient ) {
+	if ( empty( $transient->checked ) ) {
+		return $transient;
+	}
+	$remote = pratcom_geo_remote_version();
+	if ( $remote && version_compare( $remote, PRATCOM_GEO_VERSION, '>' ) ) {
+		$transient->response[ pratcom_geo_basename() ] = (object) array(
+			'slug'        => 'pratcom-geo',
+			'plugin'      => pratcom_geo_basename(),
+			'new_version' => $remote,
+			'url'         => 'https://github.com/' . PRATCOM_GEO_REPO,
+			'package'     => 'https://github.com/' . PRATCOM_GEO_REPO . '/archive/refs/heads/' . PRATCOM_GEO_BRANCH . '.zip',
+		);
+	}
+	return $transient;
+}
+add_filter( 'pre_set_site_transient_update_plugins', 'pratcom_geo_check_update' );
+
+function pratcom_geo_plugin_info( $result, $action, $args ) {
+	if ( 'plugin_information' !== $action || empty( $args->slug ) || 'pratcom-geo' !== $args->slug ) {
+		return $result;
+	}
+	$remote = pratcom_geo_remote_version();
+	return (object) array(
+		'name'          => 'Pratcom GEO',
+		'slug'          => 'pratcom-geo',
+		'version'       => $remote ? $remote : PRATCOM_GEO_VERSION,
+		'author'        => '<a href="https://pratcom.net/">Pratcom Media</a>',
+		'homepage'      => 'https://github.com/' . PRATCOM_GEO_REPO,
+		'download_link' => 'https://github.com/' . PRATCOM_GEO_REPO . '/archive/refs/heads/' . PRATCOM_GEO_BRANCH . '.zip',
+		'sections'      => array(
+			'description' => 'Genere automatiquement /llms.txt a partir du contenu publie. Mises a jour depuis https://github.com/' . PRATCOM_GEO_REPO,
+		),
+	);
+}
+add_filter( 'plugins_api', 'pratcom_geo_plugin_info', 10, 3 );
+
+function pratcom_geo_fix_source_dir( $source, $remote_source, $upgrader, $args = array() ) {
+	if ( false === strpos( basename( $source ), 'pratcom-geo' ) ) {
+		return $source;
+	}
+	global $wp_filesystem;
+	$desired = trailingslashit( $remote_source ) . 'pratcom-geo';
+	if ( untrailingslashit( $source ) === $desired ) {
+		return $source;
+	}
+	if ( $wp_filesystem && $wp_filesystem->move( untrailingslashit( $source ), $desired, true ) ) {
+		return trailingslashit( $desired );
+	}
+	return $source;
+}
+add_filter( 'upgrader_source_selection', 'pratcom_geo_fix_source_dir', 10, 4 );
+
+function pratcom_geo_after_update() {
+	delete_transient( 'pratcom_geo_remote_version' );
+}
+add_action( 'upgrader_process_complete', 'pratcom_geo_after_update' );
