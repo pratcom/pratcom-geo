@@ -4,7 +4,7 @@ Tags: llms.txt, geo, ai, seo, wpml, llmstxt
 Requires at least: 6.4
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,9 @@ pratcom_geo_recent_count, pratcom_geo_legal_slugs, pratcom_geo_cache_ttl.
 4. Visiter https://VOTRE-SITE/llms.txt pour verifier.
 
 == Changelog ==
+= 1.0.3 =
+* Auto-update depuis GitHub integre (depot public), sans plugin externe : les mises a jour s'affichent dans wp-admin.
+
 = 1.0.2 =
 * Sections croisees : liens rendus dans la langue cible pour obtenir les bons slugs traduits (corrige p. ex. /en/about/ au lieu de /en/a-propos/).
 
